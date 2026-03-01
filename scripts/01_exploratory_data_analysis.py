@@ -6,7 +6,7 @@ Hospital Readmission Prediction for Diabetes Patients
 Dataset: Diabetes 130-US Hospitals (UCI Machine Learning Repository)
 https://archive.ics.uci.edu/ml/datasets/diabetes+130-us+hospitals+for+years+1999-2008
 
-Author: [Your Name]
+Author: Group 4
 Date: February 2026
 """
 
