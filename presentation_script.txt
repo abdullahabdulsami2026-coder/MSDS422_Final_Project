@@ -1,0 +1,129 @@
+PRESENTATION NARRATION SCRIPT
+================================
+MSDS 422 Final Project — Predicting 30-Day Diabetes Readmission
+Team G4: Abdullah, Jiahao, Feifan
+
+
+================================================================
+ABDULLAH — SLIDES 1-4 
+================================================================
+
+SLIDE 1 — COVER
+---
+Hello everyone. My name is Abdullah Abdulsami, and I'm presenting alongside my teammates Jiahao Li and Feifan. Our project focuses on predicting 30-day hospital readmission for diabetic patients using machine learning. This is our final project for MSDS 422, Practical Machine Learning. I'll walk you through the problem, our research context, and the dataset, then hand it off to Jiahao for the technical approach, and Feifan will close with deployment and conclusions.
+
+SLIDE 2 — PROBLEM STATEMENT
+---
+Hospital readmissions within 30 days are a major problem in the U.S. healthcare system, costing over 26 billion dollars annually. The Centers for Medicare and Medicaid Services, or CMS, actively penalizes hospitals with excess readmission rates through the Hospital Readmissions Reduction Program. For diabetic patients specifically, readmission rates are notably higher than the general population due to the complexity of managing diabetes alongside other conditions.
+
+Our research question is straightforward: can we use clinical and administrative data to predict which patients are likely to be readmitted within 30 days? If we can identify these high-risk patients at discharge, hospitals can intervene early — whether through follow-up calls, medication counseling, or scheduling outpatient visits — to prevent the readmission from happening.
+
+Our objective is to build and compare four different machine learning models, evaluate their performance, and provide actionable recommendations for hospital management.
+
+SLIDE 3 — LITERATURE REVIEW
+---
+Before building our models, we reviewed nine peer-reviewed papers organized around three themes, with each team member responsible for three papers.
+ 
+I reviewed three papers on readmission risk factors and costs. The original study by Strack and colleagues in 2014, which analyzed this same dataset, found that HbA1c measurement during hospitalization significantly impacts readmission and that medication management is a key modifiable factor. Rubin's 2015 study estimated each readmission event costs hospitals upward of 25,000 dollars, and that early identification programs can reduce these costs by 15 to 20 percent. And Donzé and colleagues in 2016 developed the HOSPITAL score for predicting 30-day readmissions, identifying the number of procedures, sodium levels, and length of stay as top predictors.
+ 
+Jiahao reviewed three papers on machine learning approaches for clinical prediction. Hammoudeh and colleagues showed gradient boosting outperforms logistic regression on imbalanced clinical data. Rajkomar and colleagues demonstrated deep learning on electronic health records, and Chen and Guestrin introduced the XGBoost framework that became the standard for tabular clinical data.
+ 
+Feifan reviewed three papers on feature engineering and data challenges. Dugan and Shubrook confirmed that prior utilization is the strongest predictor of readmission. Choi and colleagues compared neural networks to gradient boosting on structured data. And Fernández and colleagues provided a comprehensive review of techniques for handling class imbalance, which directly informed our modeling strategy.
+ 
+The key takeaway across all nine papers is that ensemble methods combined with utilization-based features show the most promise for this type of prediction task.
+
+SLIDE 4 — DATA OVERVIEW 
+---
+We used the UCI Diabetes 130-US Hospitals Dataset, which contains over 101,000 inpatient encounters from 130 hospitals across the United States, spanning 1999 to 2008. The dataset includes 55 features covering demographics, admission details, clinical metrics, 24 different medication variables, lab results, and prior utilization history.
+
+Our target variable is binary: was the patient readmitted within 30 days — yes or no. The positive class, meaning readmitted within 30 days, represents only 11.2 percent of all encounters. This creates a significant class imbalance with a ratio of roughly 7 to 1, which is a core challenge we had to address in our modeling approach.
+
+After cleaning — removing duplicate patient encounters, filtering out deceased and hospice discharges, and dropping columns with excessive missing data like weight at 97 percent missing — we retained approximately 70,000 encounters for modeling.
+
+I'll now hand it over to Jiahao, who will walk you through our feature engineering, modeling methodology, and results.
+
+
+================================================================
+JIAHAO — SLIDES 5-8
+================================================================
+
+SLIDE 5 — EXPLORATORY DATA ANALYSIS
+---
+Thank you, Abdullah. Before building our models, we conducted a thorough exploratory data analysis to understand the data and guide our feature engineering.
+
+The most striking finding was the class imbalance — only 11.2 percent of encounters resulted in readmission within 30 days. This immediately told us that accuracy alone would be a misleading metric, so we chose AUC-ROC as our primary evaluation measure.
+
+From our EDA, we identified several important patterns. Patients with three or more prior inpatient visits in the past year had roughly 2.5 times the readmission rate compared to patients with no prior visits. Longer hospital stays, particularly seven days or more, also correlated with higher readmission risk. On the medication side, changes in insulin dosage during hospitalization were associated with increased readmission likelihood. And from a demographics perspective, patients in the 60 to 80 age range represented the highest volume of readmissions.
+
+We also identified substantial missing data — weight was 97 percent missing and was dropped entirely, while medical specialty at 47 percent missing was retained using an "Unknown" category since the missingness itself could be clinically meaningful.
+
+SLIDE 6 — FEATURE ENGINEERING 
+---
+Based on our EDA findings, I led the feature engineering effort and created 10 new features focused on capturing temporal patterns and utilization intensity.
+
+First, I binned length of stay into four categories: short stays under 2 days, medium at 2 to 5 days, long at 5 to 9 days, and extended stays beyond 9 days. This helped the models capture nonlinear relationships with readmission risk.
+
+Second, I created a total prior visits feature by summing outpatient, emergency, and inpatient visits from the prior year, then categorized this into visit intensity levels. I also computed the proportion of those visits that were emergency versus inpatient, since emergency-heavy utilization patterns signal different risk profiles.
+
+I created a high-utilizer flag for patients with three or more prior visits, and a procedure intensity metric measuring procedures per day of hospital stay. These capture how aggressively patients are being treated relative to their stay duration.
+
+For diagnosis codes, we grouped the ICD-9 codes into 9 broad clinical categories — Circulatory, Respiratory, Diabetes, and so on — rather than using the raw high-cardinality codes. Medications were mapped to ordinal values reflecting dosage changes.
+
+In total, we went from 55 original features to 77 after engineering, and these new features turned out to be among the most important predictors in our final models.
+
+SLIDE 7 — METHODOLOGY & MODELS 
+---
+We implemented four models following the CRISP-DM methodology. Logistic Regression served as our interpretable baseline with L2 regularization and balanced class weights. Random Forest gave us an ensemble approach with 300 trees and built-in feature importance.
+
+I was responsible for the XGBoost model, which uses gradient boosting with several techniques to handle class imbalance — specifically the scale_pos_weight parameter weighted at the imbalance ratio, plus L1 and L2 regularization to prevent overfitting. I tuned four hyperparameters through grid search cross-validation: tree depth, learning rate, number of estimators, and minimum child weight.
+
+Feifan built the MLP neural network with a three-layer architecture of 128, 64, and 32 neurons, using ReLU activation, dropout for regularization, and early stopping.
+
+All models were evaluated using 5-fold stratified cross-validation to ensure the class distribution was preserved in each fold.
+
+SLIDE 8 — MODEL RESULTS 
+---
+Here are our results. XGBoost achieved the highest AUC-ROC among all four models, followed by Random Forest, then the MLP Neural Network, with Logistic Regression as the baseline.
+
+Looking at the combined ROC curves, you can see that all models perform meaningfully better than random, but the gradient boosting approach has a consistent edge. The precision-recall curves tell a similar story — XGBoost has the highest average precision.
+
+An important note: given the severe 7-to-1 class imbalance, the absolute F1 scores and recall values are modest across all models. This is expected — predicting rare events in clinical data is inherently challenging. However, even a moderate improvement in identifying high-risk patients translates to significant cost savings and better outcomes.
+
+The top features across models were consistent: number of prior inpatient visits, number of emergency visits, number of diagnoses, time in hospital, and insulin-related medication changes. This validates what the literature suggested — prior utilization is the strongest signal for readmission risk.
+
+I'll now turn it over to Feifan to discuss deployment, conclusions, and next steps.
+
+
+================================================================
+FEIFAN — SLIDES 9-12
+================================================================
+
+SLIDE 9 — DEPLOYMENT & AUTOMATION 
+---
+Thank you, Jiahao. For our deployment strategy, we built a fully automated end-to-end pipeline that can reproduce our entire analysis with a single command. The pipeline script, run_pipeline.py, executes all stages sequentially: data preprocessing, feature engineering, model training for all four models, evaluation, and comparison.
+
+The best performing model is exported using joblib, making it ready for integration into a hospital's existing discharge workflow. In a production setting, when a patient is about to be discharged, their clinical data would be passed through our preprocessing and feature engineering pipeline, and the model would output a readmission risk score.
+
+For monitoring, we recommend tracking feature drift — particularly in medication patterns, as clinical guidelines evolve over time — and retraining the model on a quarterly basis with updated hospital data. All of our code, documentation, and results are hosted in our GitHub repository with a complete README and requirements file for reproducibility.
+
+SLIDE 10 — FINDINGS & CONCLUSIONS 
+---
+To summarize our key findings: XGBoost was the best performing model for predicting 30-day readmission, and the most impactful predictors were related to prior healthcare utilization and medication management — not demographics.
+
+Our business recommendation is to implement a risk-flagging system at discharge. Patients with three or more prior visits in the past year, combined with medication changes during their stay, should be flagged for enhanced post-discharge follow-up. This could include scheduled outpatient visits within one week, medication counseling before discharge, and follow-up phone calls within 48 hours.
+
+Based on published estimates, if a hospital targets the top 20 percent highest-risk patients with these interventions, they could reduce readmissions by 10 to 15 percent, translating to potential savings of over 2.6 million dollars annually per hospital while simultaneously improving patient outcomes and avoiding CMS penalties.
+
+SLIDE 11 — LIMITATIONS & LESSONS LEARNED 
+---
+We want to be transparent about limitations. The severe class imbalance at 11.2 percent limits recall across all models — identifying every patient who will be readmitted remains very difficult. The dataset spans 1999 to 2008, meaning clinical practices, medications, and hospital protocols have evolved significantly since then. The near-complete absence of weight data eliminated BMI as a potential predictor, and the dataset lacks social determinants of health like income, insurance type, and transportation access, which research shows are significant factors in readmission.
+
+Our key lessons learned: feature engineering, particularly around prior utilization, was more impactful than simply choosing a more complex model. Gradient boosting handled the sparse clinical features and class imbalance better than the neural network on this tabular dataset. And ensemble methods consistently outperformed single models.
+
+For next steps, we would recommend exploring oversampling techniques like SMOTE or ADASYN, testing LightGBM as an alternative to XGBoost, incorporating social determinant features, and validating on more recent hospital data.
+
+SLIDE 12 — REFERENCES & TEAM 
+---
+Here are our nine references in Chicago style, along with our team contributions. Abdullah handled Logistic Regression, Random Forest, the comparison table, and the three papers on readmission risk factors. Jiahao led XGBoost, feature engineering, pipeline design, and the three papers on machine learning methods. And I was responsible for the MLP Neural Network, EDA demographics, deployment documentation, and the three papers on feature engineering and imbalanced learning.
+ 
+Our full codebase is available on GitHub. Thank you for your time, and we're happy to take any questions.
